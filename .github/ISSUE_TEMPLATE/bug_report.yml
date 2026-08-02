@@ -1,0 +1,39 @@
+name: Bug report
+description: Report a reproducible problem in the Community Edition.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Please remove secrets and private data before submitting.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: v0.1.0-alpha
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the smallest reproducible workflow.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: checks
+    attributes:
+      label: Checks and environment
+      description: Include Node, pnpm, and relevant command output without secrets.

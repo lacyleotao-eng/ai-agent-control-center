@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id           String          @id @default(cuid())
+  name         String
+  slug         String          @unique
+  description  String?
+  status       String          @default("ACTIVE")
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  requirements Requirement[]
+  tasks        Task[]
+  agents       Agent[]
+  approvals    ApprovalRequest[]
+  workProducts WorkProduct[]
+  handoffs     Handoff[]
+  reviews      Review[]
+  auditEvents  AuditEvent[]
+}
+
+model Requirement {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  description String
+  status      String   @default("DRAFT")
+  createdBy   String   @default("Human")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+
+  @@index([projectId, createdAt])
+}
+
+model Task {
+  id             String           @id @default(cuid())
+  projectId      String
+  requirementId  String
+  assignedAgentId String?
+  title          String
+  description    String
+  status         String           @default("DRAFT")
+  plannerMode    String           @default("MOCK_DETERMINISTIC")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  project        Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requirement    Requirement      @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  assignedAgent  Agent?           @relation(fields: [assignedAgentId], references: [id], onDelete: SetNull)
+  approval       ApprovalRequest?
+  workProducts   WorkProduct[]
+  handoffs       Handoff[]
+  reviews        Review[]
+
+  @@index([projectId, status])
+  @@index([requirementId])
+}
+
+model Agent {
+  id             String        @id @default(cuid())
+  projectId      String
+  name           String
+  role           String
+  status         String        @default("AVAILABLE")
+  createdAt      DateTime      @default(now())
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks          Task[]
+  workProducts   WorkProduct[]
+  handoffsFrom   Handoff[]     @relation("HandoffFromAgent")
+  handoffsTo     Handoff[]     @relation("HandoffToAgent")
+  reviews        Review[]
+  auditEvents    AuditEvent[]  @relation("AuditActor")
+
+  @@unique([projectId, role])
+}
+
+model ApprovalRequest {
+  id           String   @id @default(cuid())
+  projectId    String
+  taskId       String   @unique
+  status       String   @default("PENDING")
+  requestedBy  String
+  approvedBy   String?
+  decisionNote String?
+  requestedAt  DateTime @default(now())
+  decidedAt    DateTime?
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model WorkProduct {
+  id          String   @id @default(cuid())
+  projectId   String
+  taskId      String
+  agentId     String
+  type        String
+  title       String
+  content     String
+  status      String   @default("DRAFT")
+  evidence    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  handoffs    Handoff[]
+  reviews     Review[]
+
+  @@index([projectId, createdAt])
+}
+
+model Handoff {
+  id            String      @id @default(cuid())
+  projectId     String
+  taskId        String
+  workProductId String
+  fromAgentId   String
+  toAgentId     String
+  status        String      @default("PENDING")
+  message       String
+  acceptedAt    DateTime?
+  createdAt     DateTime    @default(now())
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task          Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  workProduct   WorkProduct @relation(fields: [workProductId], references: [id], onDelete: Cascade)
+  fromAgent     Agent       @relation("HandoffFromAgent", fields: [fromAgentId], references: [id], onDelete: Restrict)
+  toAgent       Agent       @relation("HandoffToAgent", fields: [toAgentId], references: [id], onDelete: Restrict)
+
+  @@index([projectId, createdAt])
+}
+
+model Review {
+  id            String      @id @default(cuid())
+  projectId     String
+  taskId        String
+  workProductId String
+  reviewerId    String
+  status        String      @default("SUBMITTED")
+  decision      String
+  summary       String
+  evidence      String
+  createdAt     DateTime    @default(now())
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task          Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  workProduct   WorkProduct @relation(fields: [workProductId], references: [id], onDelete: Cascade)
+  reviewer      Agent       @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
+
+  @@index([projectId, createdAt])
+}
+
+model AuditEvent {
+  id            String   @id @default(cuid())
+  projectId     String
+  actorId       String?
+  actorName     String
+  event         String
+  objectType    String
+  objectId      String
+  previousState String?
+  newState      String
+  evidence      String
+  createdAt     DateTime @default(now())
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  actor         Agent?   @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+}

@@ -1,0 +1,19 @@
+node_modules/
+.next/
+out/
+*.log
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+coverage/
+.DS_Store
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# Local runtime artifacts
+.data/
+tmp/
